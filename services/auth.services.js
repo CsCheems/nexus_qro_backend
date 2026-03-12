@@ -45,12 +45,12 @@ async function register(userData){
                 break;
         }
 
-        const token = generateToken(data);
+        const token = generateToken(user);
 
-        delete data.password;
+        delete user.password;
 
         return{
-            user: data,
+            user,
             token
         }
 
