@@ -2,6 +2,8 @@ const bcrypt = require("bcrypt");
 const supabase = require("../config/supabase");
 const generateToken = require("../utils/jwt");
 
+/* ===REGISTER=== */ 
+
 async function register(userData){
     try{
         const{
@@ -14,7 +16,7 @@ async function register(userData){
             password
         } = userData;
 
-        if(!name || !lastName || !secondLastName || !email || !phone || !password || !role){
+        if(!name || !lastName || !email || !phone || !password || !role){
             throw new Error("Faltan campos obligatorios");
         }
 
@@ -125,6 +127,72 @@ async function createConsultantProfile(userId) {
         }
 }
 
+/* ===LOGIN=== */
+
+async function login(userData){
+    try {
+        const{email, password} = userData;
+    
+        if(!email || !password){
+            throw new Error("Faltan campos obligatorios");
+        }
+
+        const normalizedEmail = email.toLowerCase();
+        
+        const {data: existingUser, error: searchError} = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', normalizedEmail)
+            .single();
+
+        if(searchError){
+            const error = new Error('Error al buscar el usuario');
+            erros.status = 500;
+            throw error;
+        }
+
+        if(!existingUser){
+            const error = new Error("Credenciales invalidas");
+            error.status = 401;
+            throw error;
+        }
+
+        const passwordMatch = await bcrypt.compare(
+            password,
+            existingUser.password
+        );
+
+        if(!passwordMatch){
+            const error = new Error("Credenciales invalidas");
+            error.status = 401;
+            throw error;
+        }
+
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({
+                ultimo_acceso: new Date().toISOString()
+            })
+            .eq('id', existingUser.id);
+
+        if(updateError){
+            console.error("Error actualizando ultimo_acceso:", updateError.message);
+        }
+
+        const token = generateToken(existingUser);
+
+        delete existingUser.password;
+
+        return {
+            token
+        };
+
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
 module.exports = {
-    register
+    register,
+    login
 };
