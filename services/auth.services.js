@@ -184,7 +184,8 @@ async function login(userData){
         delete existingUser.password;
 
         return {
-            token
+            token,
+            user: existingUser
         };
 
     } catch (error) {

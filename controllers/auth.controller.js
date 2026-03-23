@@ -20,11 +20,19 @@ async function register(req, res) {
 async function login(req, res) {
     try{
         const result = await authService.login(req.body);
-        res.status(200).json({
-            message: "Inicio de sesion exitoso",
-            token: result.token,
-            user: result.token
+
+        res.cookie("token", result.token,{
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "lax",
+            maxAge: 1000 * 60 * 60 * 24
         });
+
+        return res.status(200).json({
+            message: "Inicio de sesión exitoso",
+            user: result.user
+        });
+
     }catch(error){
         return res.status(error.status || 500).json({
             message: error.message || "Error interno del servidor"
