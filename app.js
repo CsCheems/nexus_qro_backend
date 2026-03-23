@@ -3,7 +3,10 @@ const express = require('express');
 const cookieParser = require("cookie-parser");
 const app = express();
 const cors = require('cors');
-app.use(cors());
+app.use(cors({
+    origin: process.env.ORIGIN,
+    credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
 
