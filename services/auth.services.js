@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 const supabase = require("../config/supabase");
 const generateToken = require("../utils/jwt");
+const jwt = require("jsonwebtoken");
 
 /* ===REGISTER=== */ 
 
@@ -131,6 +132,7 @@ async function createConsultantProfile(userId) {
 
 async function login(userData){
     try {
+
         const{email, password} = userData;
     
         if(!email || !password){
@@ -147,7 +149,7 @@ async function login(userData){
 
         if(searchError){
             const error = new Error('Error al buscar el usuario');
-            erros.status = 500;
+            error.status = 500;
             throw error;
         }
 
@@ -181,6 +183,8 @@ async function login(userData){
 
         const token = generateToken(existingUser);
 
+        console.log("Token generado:", token);
+
         delete existingUser.password;
 
         return {
@@ -193,7 +197,85 @@ async function login(userData){
     }
 }
 
+async function getMe(token){
+    try{
+        if(!token){
+            const error = new Error("No autenticado");
+            error.status = 401;
+            throw error;
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        const { data: usuario, error } = await supabase
+            .from("users")
+            .select(`*, perfil_estudiante(*), perfil_consultor(*)`)
+            .eq("id", decoded.id)
+            .single();
+
+        if(error || !usuario){
+            const err = new Error("Usuario no encontrado");
+            err.status = 404;
+            throw err;
+        }
+
+        delete usuario.password;
+
+        const perfilMap = {
+            estudiante: usuario.perfil_estudiante,
+            consultor: usuario.perfil_consultor,
+        };
+
+        const perfilValidacion = {
+            estudiante: (perfil) => 
+                perfil &&
+                perfil.universidad &&
+                perfil.division &&
+                perfil.programa &&
+                perfil.experiencia,
+            
+            consultor: (perfil) =>
+                perfil &&
+                perfil.empresa &&
+                perfil.puesto
+        };
+
+        const perfil = perfilMap[usuario.rol] || null;
+        const validador = perfilValidacion[usuario.rol];
+
+        let perfilCompleto = true;
+        let mensaje = null;
+
+        if(validador){
+            perfilCompleto = validador(perfil);
+            if(!perfilCompleto){
+                mensaje = `Completa la información de tu perfil de ${usuario.rol}`;
+            }
+        }
+
+        
+
+        return {
+            usuario,
+            perfil,
+            perfilCompleto,
+            mensaje
+        };
+
+    }catch(error){
+        const err = new Error("Token inválido o expirado");
+        err.status = 401;
+        throw err;
+    }
+}
+
+async function logout(){
+    return true;
+}
+
 module.exports = {
     register,
-    login
+    login,
+    getMe,
+    logout
 };

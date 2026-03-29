@@ -21,9 +21,11 @@ async function login(req, res) {
     try{
         const result = await authService.login(req.body);
 
+        res.clearCookie("token");
+
         res.cookie("token", result.token,{
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: false,
             sameSite: "lax",
             maxAge: 1000 * 60 * 60 * 24
         });
@@ -40,8 +42,47 @@ async function login(req, res) {
     }
 }
 
+async function getMe(req, res){
+    try{
+        const token = req.cookies.token;
+        const usuario = await authService.getMe(token);
+
+        return res.status(200).json({
+            usuario
+        });
+
+    }catch(error){
+        return res.status(error.status || 401).json({
+            message: error.message
+        });
+    }
+}
+
+async function logout(req, res){
+    try{
+        await authService.logout();
+
+        res.clearCookie("token", {
+            httpOnly: true,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production"
+        });
+
+        return res.status(200).json({
+            message: "Sesión cerrada correctamente"
+        });
+
+    }catch(error){
+        return res.status(500).json({
+            message: "Error al cerrar sesión"
+        });
+    }
+}
+
 
 module.exports = {
     register,
-    login
+    login,
+    getMe,
+    logout
 }
