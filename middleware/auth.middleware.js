@@ -13,9 +13,6 @@ function requireAuth(allowedRoles = []) {
         });
       }
 
-      // console.log("TOKEN:", token);
-      // console.log("SECRET:", process.env.JWT_SECRET);
-
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       const { data: user, error } = await supabase
@@ -31,6 +28,22 @@ function requireAuth(allowedRoles = []) {
       }
 
       delete user.password;
+
+      if(user.rol === "consultor"){
+        const { data: userProfile } = await supabase
+        .from("perfil_consultor")
+        .select("*")
+        .eq("usuario_id", user.id)
+        .single();
+
+        if (!userProfile) {
+          return res.status(401).json({
+            message: "Perfil no válido",
+          });
+        }
+
+        req.userProfile = userProfile;
+      }
 
       req.user = user;
 

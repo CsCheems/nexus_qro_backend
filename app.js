@@ -11,8 +11,13 @@ app.use(express.json());
 app.use(cookieParser());
 
 const authRoutes = require('./routes/auth.routes');
+const projectRoutes = require('./routes/projects.routes');
+const userRoutes = require('./routes/users.routes');
+
 
 app.use("/auth", authRoutes);
+app.use("/projects", projectRoutes);
+app.use("/users", userRoutes);
 
 const port = process.env.PORT || 3001;
 

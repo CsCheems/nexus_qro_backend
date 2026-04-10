@@ -1,22 +1,5 @@
 const authService = require('../services/auth.services');
 
-async function register(req, res) {
-    try {
-        const result = await authService.register(req.body);
-
-        res.status(201).json({
-            message: "Usuario registrado con exito",
-            user: result.user,
-            token: result.token
-        });
-    } catch (error) {
-        res.status(400).json({
-            error: error.message
-        });
-    }
-}
-
-
 async function login(req, res) {
     try{
         const result = await authService.login(req.body);
@@ -81,7 +64,6 @@ async function logout(req, res){
 
 
 module.exports = {
-    register,
     login,
     getMe,
     logout
