@@ -45,6 +45,22 @@ function requireAuth(allowedRoles = []) {
         req.userProfile = userProfile;
       }
 
+      if(user.rol === "emprendedor"){
+        const { data: userProfile } = await supabase
+        .from("perfil_emprendedor")
+        .select("*")
+        .eq("usuario_id", user.id)
+        .single();
+
+        if(!userProfile){
+          return res.status(401).json({
+            message: "Perfil no valido",
+          });
+        }
+
+        req.userProfile = userProfile;
+      }
+
       req.user = user;
 
       if (allowedRoles.length > 0) {
