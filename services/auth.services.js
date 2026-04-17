@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 
 async function login(userData){
     try {
-
+        
         const{email, password} = userData;
     
         if(!email || !password){
@@ -20,7 +20,7 @@ async function login(userData){
             .from('users')
             .select('*')
             .eq('email', normalizedEmail)
-            .single();
+            .maybeSingle();
 
         if(searchError){
             const error = new Error('Error al buscar el usuario');

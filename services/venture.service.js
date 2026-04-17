@@ -7,7 +7,7 @@ async function getVentures(user, userProfile, filters = {}){
             .select("*")
             .order("id", {ascending: false});
 
-        if(user.rol === "emprendor"){
+        if(user.rol === "emprendedor"){
             query = query.eq("perfil_emprendedor_id", userProfile.id);
         }
 
@@ -15,12 +15,8 @@ async function getVentures(user, userProfile, filters = {}){
             query = query.eq("stage", filters.venture_stage);
         }
 
-        if(filters.requiere_financiamiento){
-            query = query.eq("requiere_financiamiento", filters.requiere_financiamiento);
-        }
-
         if(filters.search){
-            query = query.ilike("nombre", `%%${filters.search}`);
+            query = query.ilike("nombre", `%${filters.search}%`);
         }
 
         const { data, error } = await query;
@@ -91,31 +87,14 @@ async function register(user, userProfile, ventureData) {
             sector,
             industria,
             pais,
-            mercado_objetivo,
-            stage,
-            requiere_financiamiento,
-            monto_estimado_financiamiento,
-            tiene_mvp,
-            tiene_ventas,
-            formalizado,
             fecha_inicio,
             fecha_fin
         } = ventureData;
 
         if(!nombre || !descripcion || !problema_que_resuelve || !propuesta_valor ||
-            !sector || !industria  || !pais || !mercado_objetivo || !stage || !fecha_inicio || !fecha_fin){
+            !sector || !industria  || !pais || !fecha_inicio){
                 throw new Error("Faltan campos obligatorios");
             }
-
-        if (tiene_mvp === undefined || tiene_ventas === undefined || formalizado === undefined || requiere_financiamiento === undefined) {
-            throw new Error("Faltan campos booleanos");
-        }
-
-        if (requiere_financiamiento) {
-            if (monto_estimado_financiamiento === undefined || monto_estimado_financiamiento === null) {
-                throw new Error("Debe especificar el monto de financiamiento");
-            }
-        }
 
         const { data, error } = await supabase
             .from('ventures')
@@ -129,13 +108,7 @@ async function register(user, userProfile, ventureData) {
                     sector,
                     industria,
                     pais,
-                    mercado_objetivo,
-                    stage,
-                    requiere_financiamiento,
-                    monto_estimado_financiamiento,
-                    tiene_mvp,
-                    tiene_ventas,
-                    formalizado,
+                    stage: "Idea",
                     fecha_inicio,
                     fecha_fin
                 }
@@ -153,8 +126,128 @@ async function register(user, userProfile, ventureData) {
     }
 }
 
+async function createDiagnostic(diagnosticData) {
+    try {
+        const {
+            venture_id,
+            tamano_equipo,
+            tiene_ventas,
+            tiene_mvp,
+            formalizado,
+            tipo_cliente_objetivo,
+            alcance_geografico,
+            validacion_clientes,
+            sitio_web_url,
+            requiere_financiamiento,
+            monto_estimado_financiamiento
+        } = diagnosticData;
+
+        if (
+            !venture_id ||
+            tamano_equipo === undefined ||
+            tiene_ventas === undefined ||
+            tiene_mvp === undefined ||
+            formalizado === undefined ||
+            !tipo_cliente_objetivo ||
+            !alcance_geografico ||
+            !validacion_clientes
+        ) {
+            throw new Error("Faltan campos obligatorios en el diagnóstico");
+        }
+
+        const { data: existing } = await supabase
+        .from('venture_diagnostico_general')
+        .select('*')
+        .eq('venture_id', venture_id)
+        .single();
+
+        if(existing){
+            throw new Error("El diagnóstico ya existe para este emprendimiento");
+        }
+
+        const { data, error } = await supabase
+        .from('venture_diagnostico_general')
+        .insert([
+            {
+            venture_id,
+            tamano_equipo,
+            tiene_ventas,
+            tiene_mvp,
+            formalizado,
+            tipo_cliente_objetivo,
+            alcance_geografico,
+            validacion_clientes,
+            sitio_web_url,
+            requiere_financiamiento,
+            monto_estimado_financiamiento
+            }
+        ])
+        .select()
+        .single();
+
+        if (error) {
+        throw new Error(error.message);
+        }
+
+        return data;
+
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
+async function calculateStage(ventureId) {
+    try {
+        const { data: diagnostic, error: diagError } = await supabase
+        .from('venture_diagnostico_general')
+        .select('*')
+        .eq('venture_id', ventureId)
+        .single();
+
+        if (diagError || !diagnostic) {
+            throw new Error("Diagnóstico no encontrado");
+        }
+
+        let stage = "Idea";
+
+        if (!diagnostic.tiene_mvp) {
+            stage = "Idea";
+
+        } else if (diagnostic.tiene_mvp && diagnostic.validacion_clientes === "baja") {
+            stage = "Validación";
+
+        } else if (diagnostic.tiene_ventas && !diagnostic.formalizado) {
+            stage = "Modelo de Negocio";
+
+        } else if (diagnostic.formalizado && diagnostic.validacion_clientes === "media") {
+            stage = "Comercialización";
+
+        } else if (diagnostic.formalizado && diagnostic.validacion_clientes === "alta") {
+            stage = "Operación";
+        }
+
+        const { data: updated, error: updateError } = await supabase
+        .from('ventures')
+        .update({ stage })
+        .eq('id', ventureId)
+        .select()
+        .single();
+
+        if (updateError) {
+        throw new Error(updateError.message);
+        }
+
+        return updated;
+
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
 module.exports = {
     getVentures,
     register,
-    getVenture
+    getVenture,
+    calculateStage, 
+    createDiagnostic
 }

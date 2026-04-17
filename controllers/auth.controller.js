@@ -2,7 +2,9 @@ const authService = require('../services/auth.services');
 
 async function login(req, res) {
     try{
-        const result = await authService.login(req.body);
+        console.log("LOGIN BODY:", req.body);
+
+        const { token, user } = await authService.login(req.body);
 
         res.clearCookie("token");
 
@@ -16,7 +18,7 @@ async function login(req, res) {
 
         return res.status(200).json({
             message: "Inicio de sesión exitoso",
-            user: result.user
+            user: user
         });
 
     }catch(error){
