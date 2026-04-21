@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const usersController = require('../controllers/users.controller');
+const servicesController = require('../controllers/services.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const ROLES = require('../constants/roles');
 
-router.post('/register', usersController.register);
-router.patch('/update', requireAuth(), usersController.update);
+router.get('/', requireAuth([ROLES.CONSULTOR]), servicesController.getServices);
 
 module.exports = router;

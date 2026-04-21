@@ -76,9 +76,6 @@ async function register(user, userProfile, ventureData) {
             throw new Error("Solo usuarios con el rol de emprendedor pueden crear emprendimientos");
         }
 
-        console.log("user:", user);
-        console.log("userProfile:", userProfile);
-
         const {
             nombre,
             descripcion,
@@ -198,6 +195,7 @@ async function createDiagnostic(diagnosticData) {
 
 async function calculateStage(ventureId) {
     try {
+        console.log(ventureId);
         const { data: diagnostic, error: diagError } = await supabase
         .from('venture_diagnostico_general')
         .select('*')
@@ -244,10 +242,33 @@ async function calculateStage(ventureId) {
     }
 }
 
+async function getVentureDiagnostic(user, userProfile, id) {
+    try {
+        const { data, error } = await supabase
+        .from("venture_diagnostico_general")
+        .select("*")
+        .eq("venture_id", id)
+        .single();
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        if (!data) {
+            throw new Error("Diagnostico no encontrado");
+        }
+        return data;
+
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
 module.exports = {
     getVentures,
     register,
     getVenture,
     calculateStage, 
-    createDiagnostic
+    createDiagnostic,
+    getVentureDiagnostic
 }

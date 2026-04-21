@@ -45,8 +45,21 @@ async function createDiagnostic(req, res){
     try{
         const user = req.user;
         const diagnosticData = req.body;
+        const profileUser = req.userProfile;
 
-        const {venture_id} = diagnosticData;
+        if (!diagnosticData.validacion_clientes) {
+            return res.status(400).json({
+                message: "validacion_clientes es requerido"
+            });
+        }
+
+        if (diagnosticData.tamano_equipo == null) {
+            return res.status(400).json({
+                message: "tamano_equipo es requerido"
+            });
+        }
+
+        const {venture_id } = diagnosticData;
 
         if(!venture_id){
             return res.status(400).json({
@@ -54,7 +67,7 @@ async function createDiagnostic(req, res){
             });
         }
 
-        const venture = await ventureService.getVenture(venture_id);
+        const venture = await ventureService.getVenture(user, profileUser, venture_id);
 
         if(!venture){
             return res.status(400).json({
@@ -62,7 +75,7 @@ async function createDiagnostic(req, res){
             });
         }
 
-        if (venture.perfil_emprendedor_id !== user.profileId) {
+        if (venture.perfil_emprendedor_id !== profileUser.id) {
             return res.status(403).json({
                 message: "No tienes permiso para modificar este emprendimiento"
             });
@@ -91,11 +104,32 @@ async function calculateStage(req, res) {
     } 
 }
 
+async function getVentureDiagnostic(req, res){
+    try{
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                message: "ID requerido",
+            });
+        }
+
+        const result = await ventureService.getVentureDiagnostic(req.user, req.userProfile, id);
+        return res.json(result);
+
+    }catch(error){
+        return res.status(500).json({
+            message: error.message || "Error al obtner el diagnostico"
+        });
+    }
+}
+
 module.exports = {
     getVentures,
     register, 
     getVenture,
     createDiagnostic,
-    calculateStage
+    calculateStage,
+    getVentureDiagnostic
 }
 

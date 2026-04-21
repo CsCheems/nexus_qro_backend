@@ -76,7 +76,7 @@ async function getMe(token){
 
         const { data: usuario, error } = await supabase
             .from("users")
-            .select(`*, perfil_estudiante(*), perfil_consultor(*)`)
+            .select(`*, perfil_estudiante(*), perfil_consultor(*), perfil_emprendedor(*), perfil_administrador(*)`)
             .eq("id", decoded.id)
             .single();
 
@@ -91,7 +91,39 @@ async function getMe(token){
         const perfilMap = {
             estudiante: usuario.perfil_estudiante,
             consultor: usuario.perfil_consultor,
+            emprendedor: usuario.perfil_emprendedor,
+            administrador: usuario.perfil_administrador
         };
+
+        let perfil = perfilMap[usuario.rol] || null;
+
+        if(usuario.rol === "consultor" && perfil){
+            const { data: serviciosConsultor, error: serviciosError} = await supabase
+                .from("consultant_services")
+                .select(`
+                    servicio_id,
+                    consulting_services(
+                        id, 
+                        nombre
+                    )
+                `)
+                .eq("consultor_id", perfil.id);
+
+                 if (serviciosError) {
+                    throw new Error("No se pudieron obtener los servicios del consultor");
+                }
+
+                 perfil = {
+                    ...perfil,
+                    servicios:
+                    serviciosConsultor?.map((item) => ({
+                        id: item.consulting_services.id,
+                        nombre: item.consulting_services.nombre,
+                    })) || [],
+                };
+        }
+
+       
 
         const perfilValidacion = {
             estudiante: (perfil) => 
@@ -104,10 +136,22 @@ async function getMe(token){
             consultor: (perfil) =>
                 perfil &&
                 perfil.empresa &&
-                perfil.puesto
+                perfil.puesto &&
+                perfil.diisponibilidad,
+
+            emprendedor: (perfil) =>
+                perfil && 
+                perfil.sector &&
+                perfil.descripcion &&
+                perfil.experiencia,
+
+            administrador: (perfil) =>
+                perfil &&
+                perfil.cargo &&
+                perfil.area,
+
         };
 
-        const perfil = perfilMap[usuario.rol] || null;
         const validador = perfilValidacion[usuario.rol];
 
         let perfilCompleto = true;
@@ -119,9 +163,18 @@ async function getMe(token){
                 mensaje = `Completa la información de tu perfil de ${usuario.rol}`;
             }
         }
+
+        usuario.perfil = perfil;
+
+        delete usuario.perfil_estudiante;
+        delete usuario.perfil_consultor;
+        delete usuario.perfil_emprendedor;
+        delete usuario.perfil_empresa;
+        delete usuario.perfil_institucion;
+        delete usuario.perfil_administrador;
+
         return {
             usuario,
-            perfil,
             perfilCompleto,
             mensaje
         };

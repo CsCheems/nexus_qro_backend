@@ -178,6 +178,187 @@ async function createEnterpriseProfile(userId){
         }
 }
 
+async function update(userId, payload) {
+
+    const { usuario, perfil } = payload;
+
+    if (!perfil) {
+        throw new Error("Perfil requerido");
+    }
+
+    try {
+        if (usuario) {
+        const { error: userError } = await supabase
+            .from("users")
+            .update({
+            nombres: usuario.nombres,
+            apellido_paterno: usuario.apellido_paterno,
+            apellido_materno: usuario.apellido_materno,
+            email: usuario.email,
+            telefono: usuario.telefono,
+            })
+            .eq("id", userId);
+
+        if (userError) throw new Error(userError.message);
+        }
+
+        const { data: userData, error: fetchError } = await supabase
+        .from("users")
+        .select(`
+            rol,
+            perfil_consultor(id),
+            perfil_estudiante(id),
+            perfil_emprendedor(id),
+            perfil_empresa(id),
+            perfil_institucion(id),
+            perfil_administrador(id)
+        `)
+        .eq("id", userId)
+        .maybeSingle();
+
+        if (fetchError || !userData) {
+            throw new Error("No se pudo obtener el perfil del usuario");
+        }
+
+        const rol = userData.rol;
+
+        switch (rol) {
+
+            case "consultor": {
+                const perfilId = userData.perfil_consultor?.id;
+
+                if (!perfilId) {
+                    throw new Error("Perfil consultor no encontrado");
+                }
+
+                const { servicios = [], serviciosIds, ...perfilData } = perfil;
+
+                const { error: perfilError } = await supabase
+                    .from("perfil_consultor")
+                    .update({
+                        empresa: perfilData.empresa ?? null,
+                        puesto: perfilData.puesto ?? null,
+                        disponibilidad: perfilData.disponibilidad ?? "Disponible",
+                    })
+                    .eq("id", perfilId);
+
+                if (perfilError) throw new Error(perfilError.message);
+
+                if (Array.isArray(servicios)) {
+
+                    const { error: deleteError } = await supabase
+                        .from("consultant_services")
+                        .delete()
+                        .eq("consultor_id", perfilId);
+
+                    if (deleteError) throw new Error(deleteError.message);
+
+                    if (servicios.length > 0) {
+                            const inserts = servicios.map((id) => ({
+                            consultor_id: perfilId,
+                            servicio_id: Number(id),
+                        }));
+
+                        const { error: insertError } = await supabase
+                            .from("consultant_services")
+                            .insert(inserts);
+
+                        if (insertError) throw new Error(insertError.message);
+                    }
+                }
+
+                break;
+            }
+
+            case "estudiante": {
+                const perfilId = userData.perfil_estudiante?.id;
+
+                await supabase
+                .from("perfil_estudiante")
+                .update({
+                    universidad: perfil.universidad,
+                    division: perfil.division,
+                    programa: perfil.programa,
+                })
+                .eq("id", perfilId);
+
+                break;
+            }
+
+            case "emprendedor": {
+                const perfilId = userData.perfil_emprendedor?.id;
+
+                await supabase
+                .from("perfil_emprendedor")
+                .update({
+                    sector: perfil.sector ?? null,
+                    descripcion: perfil.descripcion ?? null,
+                })
+                .eq("id", perfilId);
+
+                break;
+            }
+
+            case "empresa": {
+                const perfilId = userData.perfil_empresa?.id;
+
+                await supabase
+                .from("perfil_empresa")
+                .update({
+                    nombre_empresa: perfil.nombre_empresa,
+                    pais: perfil.pais,
+                    ciudad: perfil.ciudad,
+                    sector: perfil.sector,
+                })
+                .eq("id", perfilId);
+
+                break;
+            }
+
+            case "institucion": {
+                const perfilId = userData.perfil_institucion?.id;
+
+                await supabase
+                .from("perfil_institucion")
+                .update({
+                    nombre_institucion: perfil.nombre_institucion,
+                    pais: perfil.pais,
+                    ciudad: perfil.ciudad,
+                })
+                .eq("id", perfilId);
+
+                break;
+            }
+
+            case "administrador": {
+                const perfilId = userData.perfil_administrador?.id;
+
+                await supabase
+                .from("perfil_administrador")
+                .update({
+                    cargo: perfil.cargo,
+                    area: perfil.area,
+                })
+                .eq("id", perfilId);
+
+                break;
+            }
+
+            default:
+                throw new Error("Rol no soportado");
+        }
+
+        return {
+            success: true,
+            message: "Información actualizada correctamente",
+        };
+
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
 module.exports = {
-    register
+    register,
+    update
 }

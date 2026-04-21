@@ -16,6 +16,20 @@ async function register(req, res) {
     }
 }
 
+async function update(req, res){
+    try{
+        await userService.update(req.user.id, req.body);
+        res.status(201).json({
+            message: "Informacion actualizada",
+        });
+    }catch (error) {
+        res.status(400).json({
+            error: error.message
+        });
+    }
+}
+
 module.exports = {
-    register
+    register, 
+    update
 }
