@@ -42,10 +42,10 @@ async function getProject(user) {
 async function register (user, userProfile, projectData){
     try{
 
-        // console.log("PERMISOS!", user.rol);
-        // if(user.rol !== "consultor" || user.rol !== "emprendedor"){
-        //     throw new Error("Solo usuarios con el rol consultor o emprendedor pueden crear proyectos");
-        // }
+        console.log("PERMISOS!", user.rol);
+        if(user.rol !== "consultor" && user.rol !== "emprendedor"){
+            throw new Error("Solo usuarios con el rol consultor o emprendedor pueden crear proyectos");
+        }
 
         const {
             nombre_proyecto,
@@ -72,7 +72,7 @@ async function register (user, userProfile, projectData){
             .from('proyectos')
             .insert([
                 {
-                    perfil_consultor_id: userProfile.id,
+                    perfil_consultor_id: user.rol === "consultor" ? userProfile.id : null,
                     nombre_proyecto, 
                     descripcion,
                     apoyo_economico,
