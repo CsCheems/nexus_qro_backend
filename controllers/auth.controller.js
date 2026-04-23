@@ -2,8 +2,6 @@ const authService = require('../services/auth.services');
 
 async function login(req, res) {
     try{
-        console.log("LOGIN BODY:", req.body);
-
         const { token, user } = await authService.login(req.body);
 
         res.clearCookie("token");

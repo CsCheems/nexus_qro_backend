@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const {STAGES_ORDER} = require('../constants/roadmap');
 
 async function getVentures(user, userProfile, filters = {}){
     try{
@@ -34,36 +35,50 @@ async function getVentures(user, userProfile, filters = {}){
 
 async function getVenture(user, userProfile, id) {
     try {
-        const { data, error } = await supabase
+        const { data: venture, error } = await supabase
         .from("ventures")
-        .select("*")
+        .select(`
+                 *,
+                proyectos:proyectos (
+                id,
+                nombre_proyecto,
+                descripcion,
+                estado,
+                modalidad,
+                fecha_inicio,
+                fecha_fin,
+                venture_id
+                )
+            `)
         .eq("id", id)
         .single();
 
         if (error) {
-        throw new Error(error.message);
+            throw new Error(error.message);
         }
 
-        if (!data) {
-        throw new Error("Emprendimiento no encontrado");
+        if (!venture) {
+            throw new Error("Emprendimiento no encontrado");
         }
+
+        console.log(venture);
 
         switch (user.rol) {
-        case "emprendedor":
-            if (data.perfil_emprendedor_id !== userProfile.id) {
-            throw new Error("No tienes acceso a este emprendimiento");
-            }
-            break;
+            case "emprendedor":
+                if (venture.perfil_emprendedor_id !== userProfile.id) {
+                throw new Error("No tienes acceso a este emprendimiento");
+                }
+                break;
 
-        case "consultor":
-        case "administrador":
-            break;
+            case "consultor":
+            case "administrador":
+                break;
 
-        default:
-            throw new Error("No autorizado");
+            default:
+                throw new Error("No autorizado");
         }
 
-        return data;
+        return venture;
 
     } catch (error) {
         throw new Error(error.message);
@@ -264,11 +279,80 @@ async function getVentureDiagnostic(user, userProfile, id) {
     }
 }
 
+async function getVentureStage(user, userProfile, id) {
+    try {
+        const { data, error } = await supabase
+        .from("ventures")
+        .select("stage, perfil_emprendedor_id")
+        .eq("id", id)
+        .single();
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        console.log("DATA:",data);
+
+        console.log("USER:",user);
+
+        console.log("PROFILE:",userProfile);
+
+        if (!data) {
+            throw new Error("Emprendimiento no encontrado");
+        }
+
+        switch (user.rol) {
+            case "emprendedor":
+                if (data.perfil_emprendedor_id !== userProfile.id) {
+                throw new Error("No tienes acceso a este emprendimiento");
+                }
+                break;
+
+            case "consultor":
+            case "administrador":
+                break;
+
+            default:
+                throw new Error("No autorizado");
+        }
+
+        return data;
+
+    } catch (error) {
+        throw new Error(error.message);
+    }
+}
+
+async function advanceVentureStage(ventureId, currentStage){
+    try{
+        const currentIndex = STAGES_ORDER.indexOf(currentStage);
+
+        if(currentIndex === -1 || currentIndex === STAGES_ORDER.length - 1){
+            return;
+        }
+
+        const nextStage = STAGES_ORDER[currentIndex + 1];
+
+        const { error } = await supabase
+            .from("ventures")
+            .update({stage: nextStage})
+            .eq("id", ventureId);
+
+        if(error) throw error;
+
+    }catch(error){
+        throw new Error(error.message);
+    }
+}
+
+
 module.exports = {
     getVentures,
     register,
     getVenture,
     calculateStage, 
     createDiagnostic,
-    getVentureDiagnostic
+    getVentureDiagnostic,
+    getVentureStage,
+    advanceVentureStage
 }

@@ -1,4 +1,7 @@
 const ventureService = require('../services/venture.service');
+const roadmapService = require('../services/roadmap.service');
+const tasksServices = require('../services/tasks.service');
+const ROADMAP = require('../constants/roadmap');
 
 async function getVentures(req, res){
     try{
@@ -15,14 +18,33 @@ async function getVenture(req, res){
     try{
         const { id } = req.params;
 
+        console.log(id);
+
         if (!id) {
             return res.status(400).json({
                 message: "ID requerido",
             });
         }
 
-        const result = await ventureService.getVenture(req.user, req.userProfile, id);
-        return res.json(result);
+        const venture = await ventureService.getVenture(req.user, req.userProfile, id);
+
+        const stage = venture.stage || venture.etapa_actual;
+
+        const tasks = await tasksServices.getTasksByStage(stage, venture.id);
+
+        const roadmap = {
+            stage,
+            ...ROADMAP[venture.stage],
+            tasks
+        }
+
+        const result = {
+            venture,
+            roadmap
+        };
+
+        return res.status(200).json(result);
+
     }catch(error){
         return res.status(500).json({
             message: error.message
@@ -124,12 +146,48 @@ async function getVentureDiagnostic(req, res){
     }
 }
 
+async function getRoadmap(req, res) {
+    try{
+        const { id } = req.params;
+        if(!id){
+            return res.status(400).json({
+                message: "ID requerido",
+            });
+        }
+
+        const venture = await ventureService.getVenture(req.user, req.userProfile, id);
+
+        if(!venture){
+            return res.status(404).json({
+                message: "Emprendimiento no encontrado"
+            });
+        }
+
+        const roadmap = roadmapService.getRoadmapByStage(venture.stage);
+
+        const evidences =  await tasksServices.getEvidencesByVentureId(id);
+
+        const tasks = roadmapService.buildTaskWithStatus(roadmap.tasks, evidences);
+
+        return res.json({
+            stage: venture.stage,
+            objective: roadmap.objective,
+            tasks
+        });   
+    }catch(error){
+        return res.status(500).json({
+            message: error.message || "Error al obtener roadmap"
+        });
+    }
+}
+
 module.exports = {
     getVentures,
     register, 
     getVenture,
     createDiagnostic,
     calculateStage,
-    getVentureDiagnostic
+    getVentureDiagnostic,
+    getRoadmap
 }
 

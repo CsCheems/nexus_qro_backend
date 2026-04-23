@@ -41,9 +41,11 @@ async function getProject(user) {
 
 async function register (user, userProfile, projectData){
     try{
-        if(user.rol !== "consultor"){
-            throw new Error("Solo usuarios con el rol consultor pueden crear proyectos");
-        }
+
+        // console.log("PERMISOS!", user.rol);
+        // if(user.rol !== "consultor" || user.rol !== "emprendedor"){
+        //     throw new Error("Solo usuarios con el rol consultor o emprendedor pueden crear proyectos");
+        // }
 
         const {
             nombre_proyecto,
@@ -56,7 +58,8 @@ async function register (user, userProfile, projectData){
             requisitos,
             beneficios,
             contacto_email,
-            contacto_telefono
+            contacto_telefono,
+            venture_id
         } = projectData;
 
         if(!nombre_proyecto || !descripcion || apoyo_economico === undefined 
@@ -80,7 +83,8 @@ async function register (user, userProfile, projectData){
                     requisitos,
                     beneficios,
                     contacto_email: contacto_email.toLowerCase(),
-                    contacto_telefono
+                    contacto_telefono,
+                    venture_id
                 }
             ])
             .select()

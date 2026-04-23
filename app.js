@@ -15,6 +15,7 @@ const projectRoutes = require('./routes/projects.routes');
 const userRoutes = require('./routes/users.routes');
 const venturRoutes = require('./routes/venture.routes');
 const servicesRoutes = require('./routes/services.routes');
+const tasksRoutes = require('./routes/tasks.routes');
 //const consultingRoutes = require('./routes/consulting.routes');
 
 
@@ -24,6 +25,7 @@ app.use("/users", userRoutes);
 app.use("/ventures", venturRoutes);
 //app.use("/consulting-services", consultingRoutes);
 app.use("/services", servicesRoutes);
+app.use("/tasks", tasksRoutes);
 
 const port = process.env.PORT || 3001;
 
