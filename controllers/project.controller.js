@@ -3,7 +3,7 @@ const projectService = require('../services/projects.service');
 async function getProjects(req, res){
     try{
         const result = await projectService.getProjects(req.user, req.userProfile, req.query);
-        return res.json(result);
+        return res.status(200).json(result);
     }catch(error){
         return res.status(500).json({
             message: error.message
@@ -13,8 +13,16 @@ async function getProjects(req, res){
 
 async function getProject(req, res){
     try{
-        const result = await projectService.getProject(req.userProfile, req.body);
-        return res.json(result);
+        const { id } = req.params;
+
+        if (!id) {
+            return res.status(400).json({
+                message: "ID requerido",
+            });
+        }
+
+        const result = await projectService.getProject(req.user, req.userProfile, id);
+        return res.status(200).json(result);
     }catch(error){
         return res.status(500).json({
             message: error.message

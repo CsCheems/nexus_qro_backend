@@ -61,8 +61,6 @@ async function getVenture(user, userProfile, id) {
             throw new Error("Emprendimiento no encontrado");
         }
 
-        console.log(venture);
-
         switch (user.rol) {
             case "emprendedor":
                 if (venture.perfil_emprendedor_id !== userProfile.id) {
@@ -210,7 +208,6 @@ async function createDiagnostic(diagnosticData) {
 
 async function calculateStage(ventureId) {
     try {
-        console.log(ventureId);
         const { data: diagnostic, error: diagError } = await supabase
         .from('venture_diagnostico_general')
         .select('*')
@@ -290,12 +287,6 @@ async function getVentureStage(user, userProfile, id) {
         if (error) {
             throw new Error(error.message);
         }
-
-        console.log("DATA:",data);
-
-        console.log("USER:",user);
-
-        console.log("PROFILE:",userProfile);
 
         if (!data) {
             throw new Error("Emprendimiento no encontrado");

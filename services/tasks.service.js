@@ -205,9 +205,6 @@ async function uploadEvidenceFile({ body, file, userProfile }) {
       .eq("id", venture_id)
       .single();
 
-    console.log("USER PROFILE:", userProfile);
-    console.log("VENTURE:", venture);
-
     if (ventureError || !venture) {
       const error = new Error("Emprendimiento no encontrado");
       error.status = 404;
@@ -234,7 +231,6 @@ async function uploadEvidenceFile({ body, file, userProfile }) {
       });
 
     if (storageError) {
-      console.log("STORAGE ERROR:", storageError);
       const error = new Error(storageError.message);
       error.status = 500;
       throw error;

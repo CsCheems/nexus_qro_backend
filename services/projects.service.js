@@ -35,14 +35,80 @@ async function getProjects(user, userProfile, filters = {}){
     }
 }
 
-async function getProject(user) {
-    
+async function getProject(user, userProfile, id) {
+    try {
+        const { data: project, error } = await supabase
+            .from("proyectos")
+            .select("*")
+            .eq("id", id)
+            .single();
+
+        if (error) throw new Error(error.message);
+        if (!project) throw new Error("Proyecto no encontrado");
+
+        if (project.venture_id) {
+
+            const { data: venture, error: ventureError } = await supabase
+                .from("ventures")
+                .select("*")
+                .eq("id", project.venture_id)
+                .single();
+
+            if (ventureError) throw new Error("Error al obtener el venture");
+
+            switch (user.rol) {
+                case "emprendedor":
+                    if (venture.perfil_emprendedor_id !== userProfile.id) {
+                        throw new Error("No tienes acceso a este proyecto (venture)");
+                    }
+                    break;
+
+                case "consultor":
+                    const { data: relation } = await supabase
+                        .from("venture_consultor") // 👈 si existe
+                        .select("*")
+                        .eq("venture_id", venture.id)
+                        .eq("perfil_consultor_id", userProfile.id)
+                        .maybeSingle();
+
+                    if (!relation) {
+                        throw new Error("No tienes acceso a este venture");
+                    }
+                    break;
+
+                case "administrador":
+                    break;
+
+                default:
+                    throw new Error("No autorizado");
+            }
+
+            return project;
+        }
+
+        switch (user.rol) {
+            case "consultor":
+                if (project.perfil_consultor_id !== userProfile.id) {
+                    throw new Error("No tienes acceso a este proyecto");
+                }
+                break;
+
+            case "administrador":
+                break;
+
+            default:
+                throw new Error("No autorizado");
+        }
+
+        return project;
+
+    } catch (error) {
+        throw error;
+    }
 }
 
 async function register (user, userProfile, projectData){
     try{
-
-        console.log("PERMISOS!", user.rol);
         if(user.rol !== "consultor" && user.rol !== "emprendedor"){
             throw new Error("Solo usuarios con el rol consultor o emprendedor pueden crear proyectos");
         }
@@ -152,5 +218,6 @@ async function update(user, id, projectData){
 module.exports = {
     getProjects,
     register,
-    update
+    update,
+    getProject
 }

@@ -62,8 +62,6 @@ async function completeTask(req, res){
       ventureId
     );
 
-    console.log("TAREAS: ",tasks);
-
     const allCompleted = tasks.filter(t => t.required).every(t => t.status === "completa");
 
     if (allCompleted) {
