@@ -1,36 +1,57 @@
 const supabase = require('../config/supabase');
 const {STAGES_ORDER} = require('../constants/roadmap');
 
-async function getVentures(user, userProfile, filters = {}){
-    try{
-        let query = supabase
-            .from("ventures")
-            .select("*")
-            .order("id", {ascending: false});
+async function getVentures(user, userProfile, filters = {}) {
+  try {
+    let query;
 
-        if(user.rol === "emprendedor"){
-            query = query.eq("perfil_emprendedor_id", userProfile.id);
-        }
+    if (user.rol === "consultor") {
+      query = supabase
+        .from("venture_consultants")
+        .select(`
+          ventures (*)
+        `)
+        .eq("consultant_id", userProfile.id)
+        .order("id", { ascending: false });
+    } else {
+      query = supabase
+        .from("ventures")
+        .select("*")
+        .order("id", { ascending: false });
 
-        if(filters.venture_stage){
-            query = query.eq("stage", filters.venture_stage);
-        }
-
-        if(filters.search){
-            query = query.ilike("nombre", `%${filters.search}%`);
-        }
-
-        const { data, error } = await query;
-
-        if(error){
-            throw new Error("Error al obtener emprendimientos");
-        }
-
-        return data
-        
-    }catch(error){
-        throw new Error(error.message);
+      if (user.rol === "emprendedor") {
+        query = query.eq("perfil_emprendedor_id", userProfile.id);
+      }
     }
+
+    if (filters.venture_stage) {
+      query = query.eq(
+        user.rol === "consultor" ? "ventures.stage" : "stage",
+        filters.venture_stage
+      );
+    }
+
+    if (filters.search) {
+      query = query.ilike(
+        user.rol === "consultor" ? "ventures.nombre" : "nombre",
+        `%${filters.search}%`
+      );
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error("Error al obtener emprendimientos");
+    }
+
+    if (user.rol === "consultor") {
+      return data.map((row) => row.ventures);
+    }
+
+    return data;
+  } catch (error) {
+    throw new Error(error.message);
+  }
 }
 
 async function getVenture(user, userProfile, id) {

@@ -3,6 +3,7 @@ const express = require('express');
 const cookieParser = require("cookie-parser");
 const app = express();
 const cors = require('cors');
+
 app.use(cors({
     origin: process.env.ORIGIN,
     credentials: true
@@ -17,7 +18,6 @@ const venturRoutes = require('./routes/venture.routes');
 const servicesRoutes = require('./routes/services.routes');
 const tasksRoutes = require('./routes/tasks.routes');
 //const consultingRoutes = require('./routes/consulting.routes');
-
 
 app.use("/auth", authRoutes);
 app.use("/projects", projectRoutes);
