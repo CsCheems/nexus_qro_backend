@@ -6,12 +6,10 @@ async function login(req, res) {
 
         res.clearCookie("token");
 
-        const isProd = process.env.NODE_ENV === "production";
-
         res.cookie("token", token, {
             httpOnly: true,
-            secure: isProd,
-            sameSite: isProd ? "none" : "lax",
+            secure: true,       
+            sameSite: "none",
         });
 
         return res.status(200).json({

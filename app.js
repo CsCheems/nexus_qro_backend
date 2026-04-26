@@ -4,10 +4,22 @@ const cookieParser = require("cookie-parser");
 const app = express();
 const cors = require('cors');
 
+const allowedOrigins = [
+  process.env.ORIGIN,
+  "http://localhost:3000"
+];
+
 app.use(cors({
-    origin: process.env.ORIGIN,
-    credentials: true
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS no permitido"));
+    }
+  },
+  credentials: true
 }));
+
 app.use(express.json());
 app.use(cookieParser());
 
