@@ -150,7 +150,7 @@ async function register (user, userProfile, projectData){
                     beneficios,
                     contacto_email: contacto_email.toLowerCase(),
                     contacto_telefono,
-                    venture_id
+                    venture_id: venture_id || null
                 }
             ])
             .select()
